@@ -82,7 +82,7 @@ export_plain_text_csv_and_encrypt() {
     age --encrypt -r "${AGE_PUBLIC_KEY}" -o "${filename}.csv.age"
 }
 
-cleanup() {
+clean_up() {
   log "Cleaning up..."
 
   if bw login --check >/dev/null 2>&1; then
@@ -92,7 +92,7 @@ cleanup() {
   fi
 }
 
-trap cleanup EXIT
+trap clean_up EXIT
 
 check_env_var "AGE_PUBLIC_KEY"
 
