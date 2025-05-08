@@ -41,8 +41,12 @@ log_success() {
   log "${GREEN}$*${NC}"
 }
 
-fail() {
+log_error() {
   log "${RED}$*${NC}" >&2
+}
+
+fail() {
+  log_error "$*"
   exit 1
 }
 
@@ -120,22 +124,22 @@ export_and_age_encrypt() {
 
 ping_healthchecks() {
   local status="$1"
-  local url="${HEALTHCHECKS_URL:-}"
+  local ping_url="${HEALTHCHECKS_URL:-}"
 
-  if [[ -z "$url" ]]; then
+  if [[ -z "$ping_url" ]]; then
     return
   fi
 
-  local ping_url="$url"
   case "$status" in
     start|fail)
-      ping_url="$url/$status"
+      ping_url="$ping_url/$status"
       ;;
     *)
       ;; # use base url
   esac
 
-  curl --max-time 10 --retry 5 "$ping_url"
+  curl --max-time 10 --retry 5 "$ping_url" >/dev/null 2>&1 || \
+    log_error "Failed to ping healthchecks.io"
 }
 
 clean_up() {
