@@ -7,7 +7,11 @@
 # Backs up your Bitwarden vault to a local directory, encrypting with age.
 #
 # Requirements:
-#   - Environment variable: AGE_PUBLIC_KEY
+#   - Commands:
+#       bw (Bitwarden CLI)
+#       age (encryption tool)
+#   - Environment variables:
+#       AGE_PUBLIC_KEY
 #   - Files (readable only by your user!):
 #       $HOME/.config/bitwarden/client_id
 #       $HOME/.config/bitwarden/client_secret
