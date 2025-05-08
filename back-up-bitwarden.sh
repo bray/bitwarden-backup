@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 
-# This script is licensed under the MIT License.
+# Bitwarden Vault Backup Script
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Brian Ray
 #
-# This script backs up your Bitwarden vault to a local directory.
+# Backs up your Bitwarden vault to a local directory, encrypting with age.
 #
-# It requires the following environment variables to be set:
-# - AGE_PUBLIC_KEY: Your public key for age encryption.
-#
-# It also requires the following files to be present (don't forget to make these only readable by your user!):
-# - ${HOME}/.config/bitwarden/client_id: The client ID for Bitwarden.
-# - ${HOME}/.config/bitwarden/client_secret: The client secret for Bitwarden.
-# - ${HOME}/.config/bitwarden/vault_password: The password for your Bitwarden vault.
-# - ${HOME}/.config/bitwarden/json_password: A password to set for the encrypted JSON export.
+# Requirements:
+#   - Environment variable: AGE_PUBLIC_KEY
+#   - Files (readable only by your user!):
+#       $HOME/.config/bitwarden/client_id
+#       $HOME/.config/bitwarden/client_secret
+#       $HOME/.config/bitwarden/vault_password
+#       $HOME/.config/bitwarden/json_password
 
 set -euo pipefail
 IFS=$'\n\t'
