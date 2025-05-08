@@ -12,7 +12,6 @@
 #       age (encryption tool)
 #   - Environment variables:
 #       AGE_PUBLIC_KEY
-#       HEALTHCHECKS_URL (optional)
 #   - Files (readable only by your user!):
 #       $HOME/.config/bitwarden/client_id
 #       $HOME/.config/bitwarden/client_secret
@@ -122,31 +121,7 @@ export_and_age_encrypt() {
   log_export_end "${output_file_path}"
 }
 
-ping_healthchecks() {
-  local status="$1"
-  local ping_url="${HEALTHCHECKS_URL:-}"
-
-  if [[ -z "$ping_url" ]]; then
-    return
-  fi
-
-  case "$status" in
-    start|fail)
-      ping_url="$ping_url/$status"
-      ;;
-    *)
-      ;; # use base url
-  esac
-
-  curl --max-time 10 --retry 5 "$ping_url" >/dev/null 2>&1 || \
-    log_error "Failed to ping healthchecks.io"
-}
-
 clean_up() {
-  if [[ $? -ne 0 ]]; then
-    ping_healthchecks "fail"
-  fi
-
   log "\nCleaning up..."
 
   if bw login --check >/dev/null 2>&1; then
@@ -163,8 +138,6 @@ clean_up() {
 trap clean_up EXIT
 
 main() {
-  ping_healthchecks "start"
-
   check_command bw
   check_command age
 
@@ -192,8 +165,6 @@ main() {
   export_bitwarden_encrypted "${filename_base_path}" "${json_password}"
   export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
   export_and_age_encrypt "${filename_base_path}" "csv" "plain text CSV, encrypted with age"
-
-  ping_healthchecks "done"
 }
 
 main "$@"
