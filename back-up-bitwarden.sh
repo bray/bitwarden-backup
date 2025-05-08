@@ -57,36 +57,68 @@ log_in_and_unlock() {
 
   BW_SESSION="$(bw unlock --raw --passwordfile "$vault_password_file")"
 
-  log_success "Logged in and unlocked Bitwarden."
+  log_success "Logged in to Bitwarden."
+}
+
+log_export_start() {
+  local description="$1"
+  log "\nExporting Bitwarden vault via: ${description} ..."
+}
+
+log_export_end() {
+  local file_path="$1"
+  log_success "🔒Exported to ${file_path}."
 }
 
 export_bitwarden_specific_json() {
   local filename="$1"
   local json_password="$2"
+  local desc="Bitwarden-specific encrypted JSON"
+  local output_file_path="${filename}-encrypted.json"
+
+  log_export_start "${desc}"
 
   bw export --session "${BW_SESSION}" --format encrypted_json \
-    --password "${json_password}" --output "${filename}.json"
+    --password "${json_password}" --output "${output_file_path}" > /dev/null
+
+  log_export_end "${output_file_path}"
 }
 
 export_plain_text_json_and_encrypt() {
   local filename="$1"
+  local desc="plain text JSON, encrypted with age"
+  local output_file_path="${filename}.json.age"
+
+  log_export_start "${desc}"
 
   bw export --session "${BW_SESSION}" --format json --raw | \
-    age --encrypt -r "${AGE_PUBLIC_KEY}" -o "${filename}.json.age"
+    age --encrypt -r "${AGE_PUBLIC_KEY}" -o "${output_file_path}"
+
+  log_export_end "${output_file_path}"
 }
 
 export_plain_text_csv_and_encrypt() {
   local filename="$1"
+  local desc="plain text CSV, encrypted with age"
+  local output_file_path="${filename}.csv.age"
+
+  log_export_start "${desc}"
 
   bw export --session "${BW_SESSION}" --format csv --raw | \
-    age --encrypt -r "${AGE_PUBLIC_KEY}" -o "${filename}.csv.age"
+    age --encrypt -r "${AGE_PUBLIC_KEY}" -o "${output_file_path}"
+
+  log_export_end "${output_file_path}"
 }
 
 clean_up() {
-  log "Cleaning up..."
+  log "\nCleaning up..."
 
   if bw login --check >/dev/null 2>&1; then
-    bw logout
+    if output=$(bw logout); then
+      log_success "Logged out of Bitwarden."
+    else
+      log_err_and_exit "Failed to log out of Bitwarden: ${output}."
+    fi
   else
     log_success "Already logged out of Bitwarden."
   fi
