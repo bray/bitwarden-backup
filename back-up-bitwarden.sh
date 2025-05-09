@@ -12,6 +12,7 @@
 #       age (encryption tool)
 #   - Environment variables:
 #       AGE_PUBLIC_KEY
+#       OUTPUT_DIR (optional, default: ./bitwarden_backups)
 #   - Files (readable only by your user!):
 #       $HOME/.config/bitwarden/client_id
 #       $HOME/.config/bitwarden/client_secret
@@ -29,7 +30,8 @@ CLIENT_ID_FILE="${CONFIG_BASE_PATH}/client_id"
 CLIENT_SECRET_FILE="${CONFIG_BASE_PATH}/client_secret"
 VAULT_PASSWORD_FILE="${CONFIG_BASE_PATH}/vault_password"
 JSON_PASSWORD_FILE="${CONFIG_BASE_PATH}/json_password"
-OUTPUT_DIR="bitwarden_backups"
+
+OUTPUT_DIR="${OUTPUT_DIR:-bitwarden_backups}"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
