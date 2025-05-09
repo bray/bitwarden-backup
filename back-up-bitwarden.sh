@@ -21,6 +21,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+BW_BIN="${BW_BIN:-$(command -v bw)}"
+AGE_BIN="${AGE_BIN:-$(command -v age)}"
+
 CONFIG_BASE_PATH="${HOME}/.config/bitwarden"
 CLIENT_ID_FILE="${CONFIG_BASE_PATH}/client_id"
 CLIENT_SECRET_FILE="${CONFIG_BASE_PATH}/client_secret"
@@ -72,9 +75,9 @@ log_in_and_unlock() {
   log "Logging in to Bitwarden..."
 
   BW_CLIENTID="$bw_clientid" BW_CLIENTSECRET="$bw_clientsecret" \
-    bw login --raw --apikey
+    "$BW_BIN" login --raw --apikey
 
-  BW_SESSION="$(bw unlock --raw --passwordfile "$VAULT_PASSWORD_FILE")"
+  BW_SESSION="$("$BW_BIN" unlock --raw --passwordfile "$VAULT_PASSWORD_FILE")"
 
   log_success "Logged in to Bitwarden."
 }
@@ -97,7 +100,7 @@ export_bitwarden_encrypted() {
 
   log_export_start "${desc}"
 
-  bw export --session "${BW_SESSION}" --format encrypted_json \
+  "$BW_BIN" export --session "${BW_SESSION}" --format encrypted_json \
     --password "${json_password}" --output "${output_file_path}" > /dev/null
 
   chmod 600 "${output_file_path}"
@@ -113,8 +116,8 @@ export_and_age_encrypt() {
 
   log_export_start "${desc}"
 
-  bw export --session "${BW_SESSION}" --format "$format" --raw | \
-    age --encrypt -r "$AGE_PUBLIC_KEY" -o "$output_file_path"
+  "$BW_BIN" export --session "${BW_SESSION}" --format "$format" --raw | \
+    "$AGE_BIN" --encrypt -r "$AGE_PUBLIC_KEY" -o "$output_file_path"
 
   chmod 600 "${output_file_path}"
 
@@ -124,8 +127,8 @@ export_and_age_encrypt() {
 clean_up() {
   log "\nCleaning up..."
 
-  if bw login --check >/dev/null 2>&1; then
-    if output=$(bw logout); then
+  if "$BW_BIN" login --check >/dev/null 2>&1; then
+    if output=$("$BW_BIN" logout); then
       log_success "Logged out of Bitwarden."
     else
       fail "Failed to log out of Bitwarden: ${output}."
@@ -138,8 +141,8 @@ clean_up() {
 trap clean_up EXIT
 
 main() {
-  check_command bw
-  check_command age
+  check_command "$BW_BIN"
+  check_command "$AGE_BIN"
 
   check_env_var "AGE_PUBLIC_KEY"
 
