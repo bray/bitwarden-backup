@@ -16,6 +16,8 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 ping_healthchecks() {
   local status="$1"
   local ping_url="${HEALTHCHECKS_URL:-}"
@@ -39,7 +41,7 @@ ping_healthchecks() {
 main() {
   ping_healthchecks "start"
 
-  if back-up-bitwarden.sh; then
+  if ${CURRENT_DIR}/back-up-bitwarden.sh; then
     ping_healthchecks "done"
   else
     ping_healthchecks "fail"
