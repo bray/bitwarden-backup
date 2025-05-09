@@ -21,12 +21,12 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-BASE_PATH="${HOME}/.config/bitwarden"
-CLIENT_ID_FILE="${BASE_PATH}/client_id"
-CLIENT_SECRET_FILE="${BASE_PATH}/client_secret"
-VAULT_PASSWORD_FILE="${BASE_PATH}/vault_password"
-JSON_PASSWORD_FILE="${BASE_PATH}/json_password"
-OUTPUT_BASE_DIR="bitwarden_backups"
+CONFIG_BASE_PATH="${HOME}/.config/bitwarden"
+CLIENT_ID_FILE="${CONFIG_BASE_PATH}/client_id"
+CLIENT_SECRET_FILE="${CONFIG_BASE_PATH}/client_secret"
+VAULT_PASSWORD_FILE="${CONFIG_BASE_PATH}/vault_password"
+JSON_PASSWORD_FILE="${CONFIG_BASE_PATH}/json_password"
+OUTPUT_DIR="bitwarden_backups"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -156,7 +156,7 @@ main() {
 
   timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
   today=$(date +"%Y-%m-%d")
-  output_dir="${OUTPUT_BASE_DIR}/${today}"
+  output_dir="${OUTPUT_DIR}/${today}"
   filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
 
   mkdir -p "${output_dir}"
