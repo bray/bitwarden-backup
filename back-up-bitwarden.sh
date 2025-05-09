@@ -67,7 +67,7 @@ check_env_var() {
 
 check_file() {
   if [[ ! -f "$1" ]]; then
-    fail "$1 not found. Please create it first."
+    fail "File $1 not found. Please create it first."
   fi
 }
 
