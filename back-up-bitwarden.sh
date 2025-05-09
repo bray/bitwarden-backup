@@ -52,10 +52,9 @@ fail() {
   exit 1
 }
 
-check_file() {
-  if [[ ! -f "$1" ]]; then
-    fail "$1 not found. Please create it first."
-  fi
+check_command() {
+  command -v "$1" >/dev/null 2>&1 || \
+    fail "Required command '$1' not found. Please install it."
 }
 
 check_env_var() {
@@ -66,9 +65,10 @@ check_env_var() {
   fi
 }
 
-check_command() {
-  command -v "$1" >/dev/null 2>&1 || \
-    fail "Required command '$1' not found. Please install it."
+check_file() {
+  if [[ ! -f "$1" ]]; then
+    fail "$1 not found. Please create it first."
+  fi
 }
 
 log_in_and_unlock() {
