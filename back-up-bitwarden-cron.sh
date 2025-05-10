@@ -41,7 +41,7 @@ ping_healthchecks() {
 main() {
   ping_healthchecks "start"
 
-  if ${CURRENT_DIR}/back-up-bitwarden.sh; then
+  if "${CURRENT_DIR}/back-up-bitwarden.sh"; then
     ping_healthchecks "done"
   else
     ping_healthchecks "fail"
