@@ -12,6 +12,8 @@
 #       age (encryption tool)
 #   - Environment variables:
 #       AGE_PUBLIC_KEY
+#       BW_BIN (optional, default: bw)
+#       AGE_BIN (optional, default: age)
 #       OUTPUT_DIR (optional, default: ./bitwarden_backups)
 #   - Files (readable only by your user!):
 #       $HOME/.config/bitwarden/client_id
@@ -21,9 +23,6 @@
 
 set -euo pipefail
 IFS=$'\n\t'
-
-BW_BIN="${BW_BIN:-$(command -v bw)}"
-AGE_BIN="${AGE_BIN:-$(command -v age)}"
 
 CONFIG_BASE_PATH="${HOME}/.config/bitwarden"
 CLIENT_ID_FILE="${CONFIG_BASE_PATH}/client_id"
@@ -54,9 +53,24 @@ fail() {
   exit 1
 }
 
-check_command() {
-  command -v "$1" >/dev/null 2>&1 || \
-    fail "Required command '$1' not found. Please install it."
+command_not_found() {
+  local command_name="$1"
+  local command_env_var="$2"
+
+  fail "Required command '$command_name' not found in PATH or via \$${command_env_var}."
+}
+
+check_commands() {
+  BW_BIN="${BW_BIN:-$(command -v bw 2>/dev/null || true)}"
+  AGE_BIN="${AGE_BIN:-$(command -v age 2>/dev/null || true)}"
+
+  if [[ ! -x "$BW_BIN" ]]; then
+    command_not_found "bw" "BW_BIN"
+  fi
+
+  if [[ ! -x "$AGE_BIN" ]]; then
+    command_not_found "age" "AGE_BIN"
+  fi
 }
 
 check_env_var() {
@@ -67,10 +81,29 @@ check_env_var() {
   fi
 }
 
+check_env_vars() {
+  check_env_var "AGE_PUBLIC_KEY"
+}
+
 check_file() {
   if [[ ! -f "$1" ]]; then
     fail "File $1 not found. Please create it first."
   fi
+}
+
+check_files() {
+  check_file "$CLIENT_ID_FILE"
+  check_file "$CLIENT_SECRET_FILE"
+  check_file "$VAULT_PASSWORD_FILE"
+  check_file "$JSON_PASSWORD_FILE"
+}
+
+print_config() {
+  log "\nConfiguration:"
+  log "  Bitwarden CLI: ${BW_BIN}"
+  log "  Age CLI: ${AGE_BIN}"
+  log "  Output directory: ${OUTPUT_DIR}"
+  log
 }
 
 log_in_and_unlock() {
@@ -143,20 +176,15 @@ clean_up() {
 trap clean_up EXIT
 
 main() {
-  check_command "$BW_BIN"
-  check_command "$AGE_BIN"
-
-  check_env_var "AGE_PUBLIC_KEY"
-
-  check_file "$CLIENT_ID_FILE"
-  check_file "$CLIENT_SECRET_FILE"
-  check_file "$VAULT_PASSWORD_FILE"
-  check_file "$JSON_PASSWORD_FILE"
+  check_commands
+  check_env_vars
+  check_files
 
   read -r bw_clientid < "$CLIENT_ID_FILE"
   read -r bw_clientsecret < "$CLIENT_SECRET_FILE"
   read -r json_password < "$JSON_PASSWORD_FILE"
 
+  print_config
   log_in_and_unlock
 
   timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
