@@ -159,6 +159,10 @@ export_and_age_encrypt() {
   log_export_end "${output_file_path}"
 }
 
+now() {
+  date +"%-m/%-d/%Y %-I:%M:%S %p %Z"
+}
+
 clean_up() {
   log "\nCleaning up..."
 
@@ -171,11 +175,15 @@ clean_up() {
   else
     log_success "Already logged out of Bitwarden."
   fi
+
+  echo -e "\nFinished Bitwarden backup process at $(now)."
 }
 
 trap clean_up EXIT
 
 main() {
+  echo "Started Bitwarden backup process at $(now)."
+
   check_commands
   check_env_vars
   check_files
