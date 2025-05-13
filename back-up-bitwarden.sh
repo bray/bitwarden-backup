@@ -165,6 +165,20 @@ export_and_age_encrypt() {
   log_export_end "${output_file_path}"
 }
 
+export_backups() {
+  timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
+  today=$(date +"%Y-%m-%d")
+  output_dir="${OUTPUT_DIR}/${today}"
+  filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
+
+  mkdir -p "${output_dir}"
+  chmod 700 "${output_dir}"
+
+  export_bitwarden_encrypted "${filename_base_path}" "${json_password}"
+  export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
+  export_and_age_encrypt "${filename_base_path}" "csv" "plain text CSV, encrypted with age"
+}
+
 now() {
   date +"%-m/%-d/%Y %-I:%M:%S %p %Z"
 }
@@ -196,19 +210,9 @@ main() {
   
   load_secrets
   print_config
+
   log_in_and_unlock
-
-  timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
-  today=$(date +"%Y-%m-%d")
-  output_dir="${OUTPUT_DIR}/${today}"
-  filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
-
-  mkdir -p "${output_dir}"
-  chmod 700 "${output_dir}"
-
-  export_bitwarden_encrypted "${filename_base_path}" "${json_password}"
-  export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
-  export_and_age_encrypt "${filename_base_path}" "csv" "plain text CSV, encrypted with age"
+  export_backups
 }
 
 main "$@"
