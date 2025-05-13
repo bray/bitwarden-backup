@@ -130,7 +130,7 @@ log_export_start() {
 
 log_export_end() {
   local file_path="$1"
-  log_success "🔒Exported to ${file_path}."
+  log_success "🔒Exported to $(basename ${file_path})."
 }
 
 export_bitwarden_encrypted() {
