@@ -98,6 +98,12 @@ check_files() {
   check_file "$JSON_PASSWORD_FILE"
 }
 
+load_secrets() {
+  read -r bw_clientid < "$CLIENT_ID_FILE"
+  read -r bw_clientsecret < "$CLIENT_SECRET_FILE"
+  read -r json_password < "$JSON_PASSWORD_FILE"
+}
+
 print_config() {
   log "\nConfiguration:"
   log "  Bitwarden CLI: ${BW_BIN}"
@@ -187,11 +193,8 @@ main() {
   check_commands
   check_env_vars
   check_files
-
-  read -r bw_clientid < "$CLIENT_ID_FILE"
-  read -r bw_clientsecret < "$CLIENT_SECRET_FILE"
-  read -r json_password < "$JSON_PASSWORD_FILE"
-
+  
+  load_secrets
   print_config
   log_in_and_unlock
 
