@@ -12,8 +12,8 @@
 #       age (encryption tool)
 #   - Environment variables:
 #       AGE_PUBLIC_KEY
-#       BW_BIN (optional, default: bw)
-#       AGE_BIN (optional, default: age)
+#       BW_BIN (optional, default: $(command -v bw))
+#       AGE_BIN (optional, default: $(command -v age))
 #       OUTPUT_DIR (optional, default: ./bitwarden_backups)
 #   - Files (readable only by your user!):
 #       $HOME/.config/bitwarden/client_id
