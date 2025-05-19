@@ -166,10 +166,10 @@ export_and_age_encrypt() {
 }
 
 export_backups() {
-  timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
-  today=$(date +"%Y-%m-%d")
-  output_dir="${OUTPUT_DIR}/${today}"
-  filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
+  local timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
+  local today=$(date +"%Y-%m-%d")
+  local output_dir="${OUTPUT_DIR}/${today}"
+  local filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
 
   mkdir -p "${output_dir}"
   chmod 700 "${output_dir}"
