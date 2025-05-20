@@ -10,11 +10,15 @@
 #   - Commands:
 #       bw (Bitwarden CLI)
 #       age (encryption tool)
+#       rclone (syncing to the cloud, optional)
 #   - Environment variables:
 #       AGE_PUBLIC_KEY
 #       BW_BIN (optional, default: $(command -v bw))
 #       AGE_BIN (optional, default: $(command -v age))
+#       RCLONE_BIN (optional, default: $(command -v rclone))
 #       OUTPUT_DIR (optional, default: ./bitwarden_backups)
+#       PROTON_DRIVE_REMOTE_NAME (optional, default: proton-drive)
+#       PROTON_DRIVE_DESTINATION_PATH (optional, default: Bitwarden Backups/<today>)
 #   - Files (readable only by your user!):
 #       $HOME/.config/bitwarden/client_id
 #       $HOME/.config/bitwarden/client_secret
@@ -31,6 +35,7 @@ VAULT_PASSWORD_FILE="${CONFIG_BASE_PATH}/vault_password"
 JSON_PASSWORD_FILE="${CONFIG_BASE_PATH}/json_password"
 
 OUTPUT_DIR="${OUTPUT_DIR:-bitwarden_backups}"
+PROTON_DRIVE_CONFIGURED=0
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -60,10 +65,13 @@ command_not_found() {
   fail "Required command '$command_name' not found in PATH or via \$${command_env_var}."
 }
 
-check_commands() {
+set_env_var_defaults() {
   BW_BIN="${BW_BIN:-$(command -v bw 2>/dev/null || true)}"
   AGE_BIN="${AGE_BIN:-$(command -v age 2>/dev/null || true)}"
+  RCLONE_BIN="${RCLONE_BIN:-$(command -v rclone 2>/dev/null || true)}"
+}
 
+check_commands() {
   if [[ ! -x "$BW_BIN" ]]; then
     command_not_found "bw" "BW_BIN"
   fi
@@ -83,6 +91,7 @@ check_env_var() {
 
 check_env_vars() {
   check_env_var "AGE_PUBLIC_KEY"
+  check_proton_drive_env_vars
 }
 
 check_file() {
@@ -109,6 +118,15 @@ print_config() {
   log "  Bitwarden CLI: ${BW_BIN}"
   log "  Age CLI: ${AGE_BIN}"
   log "  Output directory: ${OUTPUT_DIR}"
+
+  if (( PROTON_DRIVE_CONFIGURED )); then
+    log "  Rclone CLI: ${RCLONE_BIN}"
+    log "  Proton Drive remote name: ${PROTON_DRIVE_REMOTE_NAME:-}"
+    log "  Proton Drive destination path: ${PROTON_DRIVE_DESTINATION_PATH:-}"
+  else
+    log "  Proton Drive backup: [not configured]"
+  fi
+
   log
 }
 
@@ -166,9 +184,10 @@ export_and_age_encrypt() {
 }
 
 export_backups() {
-  local timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
-  local today=$(date +"%Y-%m-%d")
-  local output_dir="${OUTPUT_DIR}/${today}"
+  local timestamp
+  timestamp=$(date +'%Y-%m-%d_%H-%M-%S')
+
+  local output_dir="${OUTPUT_DIR}/${TODAY}"
   local filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
 
   mkdir -p "${output_dir}"
@@ -177,6 +196,49 @@ export_backups() {
   export_bitwarden_encrypted "${filename_base_path}" "${json_password}"
   export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
   export_and_age_encrypt "${filename_base_path}" "csv" "plain text CSV, encrypted with age"
+}
+
+check_proton_drive_env_vars() {
+  [[ -x "${RCLONE_BIN:-}" ]] || return
+
+  local remote_name_set=0
+  local dest_path_set=0
+
+  if [[ -n "${PROTON_DRIVE_REMOTE_NAME:-}" ]]; then
+    remote_name_set=1
+  fi
+
+  if [[ -n "${PROTON_DRIVE_DESTINATION_PATH:-}" ]]; then
+    dest_path_set=1
+  fi
+
+  if (( remote_name_set || dest_path_set )); then
+    if (( !remote_name_set || !dest_path_set )); then
+      fail "If either PROTON_DRIVE_REMOTE_NAME or PROTON_DRIVE_DESTINATION_PATH is set, both must be set."
+    fi
+
+    if [[ ! -x "${RCLONE_BIN:-}" ]]; then
+      fail "RCLONE_BIN is required when using Proton Drive upload, but was not found."
+    fi
+
+    PROTON_DRIVE_CONFIGURED=1
+  fi
+}
+
+rclone_to_proton_drive() {
+  (( PROTON_DRIVE_CONFIGURED )) || return 0
+
+  local output_dir="${OUTPUT_DIR}/${TODAY}"
+
+  if [[ -d "${output_dir}" ]]; then
+    log "\nUploading backups to Proton Drive..."
+
+    "$RCLONE_BIN" copy -v --stats-one-line "${output_dir}" "${PROTON_DRIVE_REMOTE_NAME}:${PROTON_DRIVE_DESTINATION_PATH}/"
+
+    log_success "Backups uploaded to Proton Drive."
+  else
+    log_error "Output directory path not found: ${output_dir}"
+  fi
 }
 
 now() {
@@ -204,6 +266,9 @@ trap clean_up EXIT
 main() {
   echo "Started Bitwarden backup process at $(now)."
 
+  TODAY=$(date +"%Y-%m-%d")
+
+  set_env_var_defaults
   check_commands
   check_env_vars
   check_files
@@ -213,6 +278,7 @@ main() {
 
   log_in_and_unlock
   export_backups
+  rclone_to_proton_drive
 }
 
 main "$@"
