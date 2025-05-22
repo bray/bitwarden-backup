@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# Bitwarden Vault Backup Script - Cron Wrapper
+# Bitwarden Vault Backup Script - LaunchAgent Wrapper
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Brian Ray
 #
-# Script to run the Bitwarden backup script via cron,
+# Script to run the Bitwarden backup script via LaunchAgent,
 # with optional healthchecks.io integration as a dead man's switch.
 #
 # Requirements:
