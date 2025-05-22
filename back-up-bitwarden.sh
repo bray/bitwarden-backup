@@ -4,35 +4,51 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Brian Ray
 #
-# Backs up your Bitwarden vault to a local directory, encrypting with age.
+# Backs up your Bitwarden vault to a local directory.
+#
+# The backup includes:
+#   - Encrypted JSON export (Bitwarden format)
+#   - Age-encrypted JSON export
+#   - Age-encrypted CSV export
+#
+# Optional: Syncs backups to Proton Drive via rclone
 #
 # Requirements:
 #   - Commands:
 #       bw (Bitwarden CLI)
 #       age (encryption tool)
-#       rclone (syncing to the cloud, optional)
-#   - Environment variables:
-#       AGE_PUBLIC_KEY
-#       BW_BIN (optional, default: $(command -v bw))
-#       AGE_BIN (optional, default: $(command -v age))
-#       RCLONE_BIN (optional, default: $(command -v rclone))
-#       OUTPUT_DIR (optional, default: ./bitwarden_backups)
-#       PROTON_DRIVE_REMOTE_NAME (optional, default: proton-drive)
-#       PROTON_DRIVE_DESTINATION_PATH (optional, default: Bitwarden Backups/<today>)
-#   - Files (readable only by your user!):
-#       $HOME/.config/bitwarden/client_id
-#       $HOME/.config/bitwarden/client_secret
-#       $HOME/.config/bitwarden/vault_password
-#       $HOME/.config/bitwarden/json_password
+#       rclone (optional, for Proton Drive sync)
+#
+# Configuration:
+#   All configuration is done via environment variables in:
+#   $HOME/.config/back-up-bitwarden/.env
+#
+#   Required variables:
+#     BW_CLIENTID         - Bitwarden API client ID
+#     BW_CLIENTSECRET     - Bitwarden API client secret
+#     BW_VAULT_PASSWORD   - Your Bitwarden master password
+#     BW_JSON_PASSWORD    - Password for encrypted JSON export
+#     AGE_PUBLIC_KEY      - Your age public key for encryption
+#
+#   Optional variables:
+#     BW_BIN                         - Path to bw CLI (default: $(command -v bw))
+#     AGE_BIN                        - Path to age CLI (default: $(command -v age))
+#     RCLONE_BIN                     - Path to rclone CLI (default: $(command -v rclone))
+#     OUTPUT_DIR                     - Backup directory (default: ./bitwarden_backups)
+#     PROTON_DRIVE_REMOTE_NAME       - Rclone remote name for Proton Drive
+#     PROTON_DRIVE_DESTINATION_PATH  - Destination path in Proton Drive
+#
+# Security:
+#   - The .env file should be readable only by your user (chmod 600)
+#   - Backups are encrypted with `age` using your public key
+#   - Sensitive credentials are never written to disk
+#   - All backup files are set to mode 600
 
 set -euo pipefail
 IFS=$'\n\t'
 
-CONFIG_BASE_PATH="${HOME}/.config/bitwarden"
-CLIENT_ID_FILE="${CONFIG_BASE_PATH}/client_id"
-CLIENT_SECRET_FILE="${CONFIG_BASE_PATH}/client_secret"
-VAULT_PASSWORD_FILE="${CONFIG_BASE_PATH}/vault_password"
-JSON_PASSWORD_FILE="${CONFIG_BASE_PATH}/json_password"
+CONFIG_DIR="${HOME}/.config/back-up-bitwarden"
+ENV_FILE="${CONFIG_DIR}/.env"
 
 OUTPUT_DIR="${OUTPUT_DIR:-bitwarden_backups}"
 PROTON_DRIVE_CONFIGURED=0
@@ -101,16 +117,28 @@ check_file() {
 }
 
 check_files() {
-  check_file "$CLIENT_ID_FILE"
-  check_file "$CLIENT_SECRET_FILE"
-  check_file "$VAULT_PASSWORD_FILE"
-  check_file "$JSON_PASSWORD_FILE"
+  check_file "$ENV_FILE"
 }
 
-load_secrets() {
-  read -r bw_clientid < "$CLIENT_ID_FILE"
-  read -r bw_clientsecret < "$CLIENT_SECRET_FILE"
-  read -r json_password < "$JSON_PASSWORD_FILE"
+load_config() {
+  if [[ -f "$ENV_FILE" ]]; then
+    # shellcheck source=/dev/null
+    source "$ENV_FILE"
+  fi
+  
+  local required_vars=(
+    "BW_CLIENTID"
+    "BW_CLIENTSECRET"
+    "BW_VAULT_PASSWORD"
+    "BW_JSON_PASSWORD"
+    "AGE_PUBLIC_KEY"
+  )
+
+  for var in "${required_vars[@]}"; do
+    if [[ -z "${!var:-}" ]]; then
+      fail "Required variable ${var} not set in ${ENV_FILE}"
+    fi
+  done
 }
 
 print_config() {
@@ -133,10 +161,10 @@ print_config() {
 log_in_and_unlock() {
   log "Logging in to Bitwarden..."
 
-  BW_CLIENTID="$bw_clientid" BW_CLIENTSECRET="$bw_clientsecret" \
+  BW_CLIENTID="$BW_CLIENTID" BW_CLIENTSECRET="$BW_CLIENTSECRET" \
     "$BW_BIN" login --raw --apikey
 
-  BW_SESSION="$("$BW_BIN" unlock --raw --passwordfile "$VAULT_PASSWORD_FILE")"
+  BW_SESSION="$(BW_VAULT_PASSWORD="$BW_VAULT_PASSWORD" "$BW_BIN" unlock --raw --passwordenv BW_VAULT_PASSWORD)"
 
   log_success "Logged in to Bitwarden."
 }
@@ -153,14 +181,13 @@ log_export_end() {
 
 export_bitwarden_encrypted() {
   local filename="$1"
-  local json_password="$2"
   local desc="Bitwarden-specific encrypted JSON"
   local output_file_path="${filename}-encrypted.json"
 
   log_export_start "${desc}"
 
   "$BW_BIN" export --session "${BW_SESSION}" --format encrypted_json \
-    --password "${json_password}" --output "${output_file_path}" > /dev/null
+    --password "${BW_JSON_PASSWORD}" --output "${output_file_path}" > /dev/null
 
   chmod 600 "${output_file_path}"
 
@@ -193,13 +220,13 @@ export_backups() {
   mkdir -p "${output_dir}"
   chmod 700 "${output_dir}"
 
-  export_bitwarden_encrypted "${filename_base_path}" "${json_password}"
+  export_bitwarden_encrypted "${filename_base_path}"
   export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
   export_and_age_encrypt "${filename_base_path}" "csv" "plain text CSV, encrypted with age"
 }
 
 check_proton_drive_env_vars() {
-  [[ -x "${RCLONE_BIN:-}" ]] || return
+  [[ -x "${RCLONE_BIN:-}" ]] || return 0
 
   local remote_name_set=0
   local dest_path_set=0
@@ -233,7 +260,7 @@ rclone_to_proton_drive() {
   if [[ -d "${output_dir}" ]]; then
     log "\nUploading backups to Proton Drive..."
 
-    "$RCLONE_BIN" copy -v --stats-one-line "${output_dir}" "${PROTON_DRIVE_REMOTE_NAME}:${PROTON_DRIVE_DESTINATION_PATH}/"
+    "$RCLONE_BIN" copy -v --stats-one-line "${output_dir}" "${PROTON_DRIVE_REMOTE_NAME}:${PROTON_DRIVE_DESTINATION_PATH}/${TODAY}/"
 
     log_success "Backups uploaded to Proton Drive."
   else
@@ -270,10 +297,9 @@ main() {
 
   set_env_var_defaults
   check_commands
+  load_config
   check_env_vars
   check_files
-  
-  load_secrets
   print_config
 
   log_in_and_unlock
