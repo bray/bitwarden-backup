@@ -99,6 +99,34 @@ check_env_var() {
   fi
 }
 
+check_proton_drive_env_vars() {
+  [[ -x "${RCLONE_BIN:-}" ]] || return 0
+
+  local remote_name_set=0
+  local dest_path_set=0
+
+  if [[ -n "${PROTON_DRIVE_REMOTE_NAME:-}" ]]; then
+    remote_name_set=1
+  fi
+
+  if [[ -n "${PROTON_DRIVE_DIR_BASE:-}" ]]; then
+    dest_path_set=1
+  fi
+
+  if (( remote_name_set || dest_path_set )); then
+    if (( !remote_name_set || !dest_path_set )); then
+      fail "If either PROTON_DRIVE_REMOTE_NAME or PROTON_DRIVE_DIR_BASE is set, both must be set."
+    fi
+
+    if [[ ! -x "${RCLONE_BIN:-}" ]]; then
+      fail "RCLONE_BIN is required when using Proton Drive upload, but was not found."
+    fi
+
+    PROTON_DRIVE_DIR="${PROTON_DRIVE_DIR_BASE}/${YEAR}/${MONTH}/${DAY}/"
+    PROTON_DRIVE_CONFIGURED=1
+  fi
+}
+
 check_env_vars() {
   check_env_var "AGE_PUBLIC_KEY"
   check_proton_drive_env_vars
@@ -226,34 +254,6 @@ export_backups() {
   export_bitwarden_encrypted "${filename_base_path}"
   export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
   export_and_age_encrypt "${filename_base_path}" "csv" "plain text CSV, encrypted with age"
-}
-
-check_proton_drive_env_vars() {
-  [[ -x "${RCLONE_BIN:-}" ]] || return 0
-
-  local remote_name_set=0
-  local dest_path_set=0
-
-  if [[ -n "${PROTON_DRIVE_REMOTE_NAME:-}" ]]; then
-    remote_name_set=1
-  fi
-
-  if [[ -n "${PROTON_DRIVE_DIR_BASE:-}" ]]; then
-    dest_path_set=1
-  fi
-
-  if (( remote_name_set || dest_path_set )); then
-    if (( !remote_name_set || !dest_path_set )); then
-      fail "If either PROTON_DRIVE_REMOTE_NAME or PROTON_DRIVE_DIR_BASE is set, both must be set."
-    fi
-
-    if [[ ! -x "${RCLONE_BIN:-}" ]]; then
-      fail "RCLONE_BIN is required when using Proton Drive upload, but was not found."
-    fi
-
-    PROTON_DRIVE_DIR="${PROTON_DRIVE_DIR_BASE}/${YEAR}/${MONTH}/${DAY}/"
-    PROTON_DRIVE_CONFIGURED=1
-  fi
 }
 
 rclone_to_proton_drive() {
