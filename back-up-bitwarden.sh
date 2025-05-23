@@ -58,7 +58,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 log() {
-  echo -e "$*";
+  echo -e "$*"
 }
 
 log_success() {
