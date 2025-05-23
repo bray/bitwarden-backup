@@ -11,6 +11,7 @@
 #   - Commands:
 #       back-up-bitwarden.sh (the main backup script)
 #   - Environment variables:
+#       See back-up-bitwarden.sh for other required and optional variables
 #       HEALTHCHECKS_URL (optional)
 
 set -euo pipefail
@@ -18,34 +19,72 @@ IFS=$'\n\t'
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-ping_healthchecks() {
-  local status="$1"
-  local ping_url="${HEALTHCHECKS_URL:-}"
+log() {
+  echo -e "$*"
+}
 
-  if [[ -z "$ping_url" ]]; then
-    return
+log_ping_healthchecks_error() {
+  log "Failed to ping healthchecks.io start"
+}
+
+check_healthchecks_url() {
+  HEALTHCHECKS_URL="${HEALTHCHECKS_URL:-}"
+
+  if [[ -z "${HEALTHCHECKS_URL}" ]]; then
+    log "HEALTHCHECKS_URL is not set. Skipping healthchecks.io integration.\n"
+  fi
+}
+
+ping_healthchecks() {
+  local status="$1"  # "start", "0", or "1"
+  local stderr="${2:-}"  # Optional stderr for status pings
+
+  [[ -n "$HEALTHCHECKS_URL" ]] || return 0
+
+  local clean_stderr
+  if [[ -n "$stderr" ]]; then
+    # Remove ANSI escape codes (e.g. colors) from stderr
+    clean_stderr=$(echo "$stderr" | sed $'s/\x1b\\[[0-9;?]*[ -/]*[@-~]//g')
   fi
 
   case "$status" in
-    start|fail)
-      ping_url="$ping_url/$status"
+    "start")
+      curl -fsS --max-time 10 --retry 5 "${HEALTHCHECKS_URL}/start" > /dev/null || \
+        log_ping_healthchecks_error
+      ;;
+    [0-9]*)
+      curl -fsS --max-time 10 --retry 5 --data-raw "$clean_stderr" "${HEALTHCHECKS_URL}/${status}" > /dev/null || \
+        log_ping_healthchecks_error
       ;;
     *)
-      ;; # use base url
+      log "Invalid healthchecks status: ${status}"
+      return 1
+      ;;
   esac
+}
 
-  curl --max-time 10 --retry 5 "$ping_url" >/dev/null 2>&1 || \
-    log_error "Failed to ping healthchecks.io"
+run_with_capture() {
+  local stderr_file=$(mktemp)
+  local status_code
+  local stderr_content
+
+  set +e
+  "$@" 2> >(tee "$stderr_file" >&2)
+  status_code=$?
+  set -e
+
+  stderr_content=$(cat "$stderr_file")
+  rm -f "$stderr_file"
+
+  CAPTURED_STATUS=$status_code
+  CAPTURED_STDERR="$stderr_content"
 }
 
 main() {
+  check_healthchecks_url
   ping_healthchecks "start"
-
-  if "${CURRENT_DIR}/back-up-bitwarden.sh"; then
-    ping_healthchecks "done"
-  else
-    ping_healthchecks "fail"
-  fi
+  run_with_capture "${CURRENT_DIR}/back-up-bitwarden.sh"
+  ping_healthchecks "$CAPTURED_STATUS" "$CAPTURED_STDERR"
 }
 
 main "$@"
