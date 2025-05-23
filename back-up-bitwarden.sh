@@ -34,9 +34,9 @@
 #     BW_BIN                         - Path to bw CLI (default: $(command -v bw))
 #     AGE_BIN                        - Path to age CLI (default: $(command -v age))
 #     RCLONE_BIN                     - Path to rclone CLI (default: $(command -v rclone))
-#     OUTPUT_DIR                     - Backup directory (default: ./bitwarden_backups)
+#     BACKUP_DIR_BASE                - Backup directory (default: ./bitwarden_backups)
 #     PROTON_DRIVE_REMOTE_NAME       - Rclone remote name for Proton Drive
-#     PROTON_DRIVE_DESTINATION_PATH  - Destination path in Proton Drive
+#     PROTON_DRIVE_DIR_BASE          - Base destination path in Proton Drive
 #
 # Security:
 #   - The .env file should be readable only by your user (chmod 600)
@@ -50,12 +50,6 @@ IFS=$'\n\t'
 CONFIG_DIR="${HOME}/.config/back-up-bitwarden"
 ENV_FILE="${CONFIG_DIR}/.env"
 
-OUTPUT_DIR="${OUTPUT_DIR:-bitwarden_backups}"
-PROTON_DRIVE_CONFIGURED=0
-
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
 
 log() {
   echo -e "$*"
@@ -139,18 +133,31 @@ load_config() {
       fail "Required variable ${var} not set in ${ENV_FILE}"
     fi
   done
+
+  GREEN='\033[0;32m'
+  RED='\033[0;31m'
+  NC='\033[0m'
+
+  PROTON_DRIVE_CONFIGURED=0
+
+  BACKUP_DIR_BASE="${BACKUP_DIR_BASE:-bitwarden_backups}"
+  YEAR=$(date +'%Y')
+  MONTH=$(date +'%m')
+  DAY=$(date +'%d')
+  TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
+  BACKUP_DIR="${BACKUP_DIR_BASE}/${YEAR}/${MONTH}/${DAY}"
 }
 
 print_config() {
   log "\nConfiguration:"
   log "  Bitwarden CLI: ${BW_BIN}"
   log "  Age CLI: ${AGE_BIN}"
-  log "  Output directory: ${OUTPUT_DIR}"
+  log "  Output directory: ${BACKUP_DIR}/"
 
   if (( PROTON_DRIVE_CONFIGURED )); then
     log "  Rclone CLI: ${RCLONE_BIN}"
     log "  Proton Drive remote name: ${PROTON_DRIVE_REMOTE_NAME:-}"
-    log "  Proton Drive destination path: ${PROTON_DRIVE_DESTINATION_PATH:-}"
+    log "  Proton Drive destination path: ${PROTON_DRIVE_DIR:-}"
   else
     log "  Proton Drive backup: [not configured]"
   fi
@@ -180,9 +187,9 @@ log_export_end() {
 }
 
 export_bitwarden_encrypted() {
-  local filename="$1"
+  local filename_base_path="$1"
   local desc="Bitwarden-specific encrypted JSON"
-  local output_file_path="${filename}-encrypted.json"
+  local output_file_path="${filename_base_path}-encrypted.json"
 
   log_export_start "${desc}"
 
@@ -195,10 +202,10 @@ export_bitwarden_encrypted() {
 }
 
 export_and_age_encrypt() {
-  local filename="$1"
+  local filename_base_path="$1"
   local format="$2" # json or csv
   local desc="$3"
-  local output_file_path="${filename}.${format}.age"
+  local output_file_path="${filename_base_path}.${format}.age"
 
   log_export_start "${desc}"
 
@@ -211,14 +218,10 @@ export_and_age_encrypt() {
 }
 
 export_backups() {
-  local timestamp
-  timestamp=$(date +'%Y-%m-%d_%H-%M-%S')
+  local filename_base_path="${BACKUP_DIR}/bitwarden_backup_${TIMESTAMP}"
 
-  local output_dir="${OUTPUT_DIR}/${TODAY}"
-  local filename_base_path="${output_dir}/bitwarden_backup_${timestamp}"
-
-  mkdir -p "${output_dir}"
-  chmod 700 "${output_dir}"
+  mkdir -p "${BACKUP_DIR}"
+  chmod 700 "${BACKUP_DIR}"
 
   export_bitwarden_encrypted "${filename_base_path}"
   export_and_age_encrypt "${filename_base_path}" "json" "plain text JSON, encrypted with age"
@@ -235,19 +238,20 @@ check_proton_drive_env_vars() {
     remote_name_set=1
   fi
 
-  if [[ -n "${PROTON_DRIVE_DESTINATION_PATH:-}" ]]; then
+  if [[ -n "${PROTON_DRIVE_DIR_BASE:-}" ]]; then
     dest_path_set=1
   fi
 
   if (( remote_name_set || dest_path_set )); then
     if (( !remote_name_set || !dest_path_set )); then
-      fail "If either PROTON_DRIVE_REMOTE_NAME or PROTON_DRIVE_DESTINATION_PATH is set, both must be set."
+      fail "If either PROTON_DRIVE_REMOTE_NAME or PROTON_DRIVE_DIR_BASE is set, both must be set."
     fi
 
     if [[ ! -x "${RCLONE_BIN:-}" ]]; then
       fail "RCLONE_BIN is required when using Proton Drive upload, but was not found."
     fi
 
+    PROTON_DRIVE_DIR="${PROTON_DRIVE_DIR_BASE}/${YEAR}/${MONTH}/${DAY}/"
     PROTON_DRIVE_CONFIGURED=1
   fi
 }
@@ -255,16 +259,14 @@ check_proton_drive_env_vars() {
 rclone_to_proton_drive() {
   (( PROTON_DRIVE_CONFIGURED )) || return 0
 
-  local output_dir="${OUTPUT_DIR}/${TODAY}"
-
-  if [[ -d "${output_dir}" ]]; then
+  if [[ -d "${BACKUP_DIR}" ]]; then
     log "\nUploading backups to Proton Drive..."
 
-    "$RCLONE_BIN" copy -v --stats-one-line "${output_dir}" "${PROTON_DRIVE_REMOTE_NAME}:${PROTON_DRIVE_DESTINATION_PATH}/${TODAY}/"
+    "$RCLONE_BIN" copy -v --stats-one-line "${BACKUP_DIR}" "${PROTON_DRIVE_REMOTE_NAME}:${PROTON_DRIVE_DIR}"
 
     log_success "Backups uploaded to Proton Drive."
   else
-    log_error "Output directory path not found: ${output_dir}"
+    log_error "Backups directory path not found: ${BACKUP_DIR}"
   fi
 }
 
@@ -292,8 +294,6 @@ trap clean_up EXIT
 
 main() {
   echo "Started Bitwarden backup process at $(now)."
-
-  TODAY=$(date +"%Y-%m-%d")
 
   set_env_var_defaults
   check_commands
