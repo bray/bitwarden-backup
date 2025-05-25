@@ -18,6 +18,8 @@
 #       bw (Bitwarden CLI)
 #       age (encryption tool)
 #       rclone (optional, for Proton Drive sync)
+#   - Scripts:
+#       common-functions.sh (a library of common functions)
 #
 # Configuration:
 #   All configuration is done via environment variables in:
@@ -51,28 +53,15 @@ CONFIG_DIR="${HOME}/.config/back-up-bitwarden"
 ENV_FILE="${CONFIG_DIR}/.env"
 
 
-log() {
-  echo -e "$*"
-}
+source_common_functions() {
+  local path="${XDG_DATA_HOME:-${HOME}/.local/share}/scripts/common-functions.sh"
 
-log_success() {
-  log "${GREEN}$*${NC}"
-}
-
-log_error() {
-  log "${RED}$*${NC}" >&2
-}
-
-fail() {
-  log_error "$*"
-  exit 1
-}
-
-command_not_found() {
-  local command_name="$1"
-  local command_env_var="$2"
-
-  fail "Required command '$command_name' not found in PATH or via \$${command_env_var}."
+  if [[ -f "$path" ]]; then
+    source "$path"
+  else
+    echo "Error: common-functions.sh not found. Please install it first."
+    exit 1
+  fi
 }
 
 set_env_var_defaults() {
@@ -295,6 +284,7 @@ trap clean_up EXIT
 main() {
   echo "Started Bitwarden backup process at $(now)."
 
+  source_common_functions
   set_env_var_defaults
   check_commands
   load_config

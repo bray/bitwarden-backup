@@ -8,8 +8,9 @@
 # with optional healthchecks.io integration as a dead man's switch.
 #
 # Requirements:
-#   - Commands:
+#   - Scripts:
 #       back-up-bitwarden.sh (the main backup script)
+#       common-functions.sh (a library of common functions)
 #   - Environment variables:
 #       See back-up-bitwarden.sh for other required and optional variables
 #       HEALTHCHECKS_URL (optional)
@@ -17,14 +18,21 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-log() {
-  echo -e "$*"
+source_common_functions() {
+  local path="${XDG_DATA_HOME:-${HOME}/.local/share}/scripts/common-functions.sh"
+
+  if [[ -f "$path" ]]; then
+    source "$path"
+  else
+    echo "Error: common-functions.sh not found. Please install it first."
+    exit 1
+  fi
 }
 
 log_ping_healthchecks_error() {
-  log "Failed to ping healthchecks.io start"
+  log_error "Failed to ping healthchecks.io start"
 }
 
 check_healthchecks_url() {
@@ -62,7 +70,7 @@ ping_healthchecks() {
         log_ping_healthchecks_error
       ;;
     *)
-      log "Invalid healthchecks status: ${status}"
+      log_error "Invalid healthchecks status: ${status}"
       return 1
       ;;
   esac
@@ -87,9 +95,10 @@ run_with_capture() {
 }
 
 main() {
+  source_common_functions
   check_healthchecks_url
   ping_healthchecks "start"
-  run_with_capture "${CURRENT_DIR}/back-up-bitwarden.sh"
+  run_with_capture "${SCRIPT_DIR}/back-up-bitwarden.sh"
   ping_healthchecks "$CAPTURED_STATUS" "$CAPTURED_STDERR"
 }
 
