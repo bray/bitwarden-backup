@@ -46,7 +46,7 @@ check_healthchecks_url() {
 ping_healthchecks() {
   local status="$1"  # "start", "0", or any non-zero number
   local stderr="${2:-}"  # Optional stderr for non-zero status pings
-  local curl_args="-fsS --max-time 10 --retry 5"
+  local curl_args=(-fsS --max-time 10 --retry 5)
 
   [[ -n "$HEALTHCHECKS_URL" ]] || return 0
 
@@ -58,15 +58,15 @@ ping_healthchecks() {
 
   case "$status" in
     "start")
-      curl "$curl_args" "${HEALTHCHECKS_URL}/start" > /dev/null || \
+      curl "${curl_args[@]}" "${HEALTHCHECKS_URL}/start" > /dev/null || \
         log_ping_healthchecks_error
       ;;
     0)
-      curl "$curl_args" "${HEALTHCHECKS_URL}" > /dev/null || \
+      curl "${curl_args[@]}" "${HEALTHCHECKS_URL}" > /dev/null || \
         log_ping_healthchecks_error
       ;;
     [1-9]*)
-      curl "$curl_args" --data-raw "$clean_stderr" "${HEALTHCHECKS_URL}/${status}" > /dev/null || \
+      curl "${curl_args[@]}" --data-raw "$clean_stderr" "${HEALTHCHECKS_URL}/${status}" > /dev/null || \
         log_ping_healthchecks_error
       ;;
     *)
