@@ -57,6 +57,7 @@ source_common_functions() {
   local path="${XDG_DATA_HOME:-${HOME}/.local/share}/scripts/common-functions.sh"
 
   if [[ -f "$path" ]]; then
+    # shellcheck source=/dev/null
     source "$path"
   else
     echo "Error: common-functions.sh not found. Please install it first."
@@ -150,10 +151,6 @@ load_config() {
       fail "Required variable ${var} not set in ${ENV_FILE}"
     fi
   done
-
-  GREEN='\033[0;32m'
-  RED='\033[0;31m'
-  NC='\033[0m'
 
   PROTON_DRIVE_CONFIGURED=0
 
