@@ -24,6 +24,7 @@ source_common_functions() {
   local path="${XDG_DATA_HOME:-${HOME}/.local/share}/scripts/common-functions.sh"
 
   if [[ -f "$path" ]]; then
+    # shellcheck source=/dev/null
     source "$path"
   else
     echo "Error: common-functions.sh not found. Please install it first."
@@ -46,34 +47,35 @@ check_healthchecks_url() {
 ping_healthchecks() {
   local status="$1"  # "start", "0", or any non-zero number
   local stderr="${2:-}"  # Optional stderr for non-zero status pings
+  local ping_url=""
   local curl_args=(-fsS --max-time 10 --retry 5)
 
   [[ -n "$HEALTHCHECKS_URL" ]] || return 0
 
-  local clean_stderr
-  if [[ -n "$stderr" ]]; then
-    # Remove ANSI escape codes (e.g. colors) from stderr
-    clean_stderr=$(echo "$stderr" | sed $'s/\x1b\\[[0-9;?]*[ -/]*[@-~]//g')
-  fi
-
   case "$status" in
     "start")
-      curl "${curl_args[@]}" "${HEALTHCHECKS_URL}/start" > /dev/null || \
-        log_ping_healthchecks_error
+      ping_url="${HEALTHCHECKS_URL}/start"
       ;;
     0)
-      curl "${curl_args[@]}" "${HEALTHCHECKS_URL}" > /dev/null || \
-        log_ping_healthchecks_error
+      ping_url="${HEALTHCHECKS_URL}/0"
       ;;
     [1-9]*)
-      curl "${curl_args[@]}" --data-raw "$clean_stderr" "${HEALTHCHECKS_URL}/${status}" > /dev/null || \
-        log_ping_healthchecks_error
+      local clean_stderr
+      if [[ -n "$stderr" ]]; then
+        # Remove ANSI escape codes (e.g. colors) from stderr
+        clean_stderr=$(echo "$stderr" | sed $'s/\x1b\\[[0-9;?]*[ -/]*[@-~]//g')
+      fi
+
+      curl_args+=(--data-raw "$clean_stderr")
+      ping_url="${HEALTHCHECKS_URL}/${status}"
       ;;
     *)
       log_error "Invalid healthchecks status: ${status}"
       return 1
       ;;
   esac
+
+  curl "${curl_args[@]}" "${ping_url}" > /dev/null || log_ping_healthchecks_error
 }
 
 run_with_capture() {
