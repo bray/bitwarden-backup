@@ -84,7 +84,11 @@ ping_healthchecks() {
       ;;
   esac
 
-  curl "${curl_args[@]}" "${ping_url}" > /dev/null || log_ping_healthchecks_error
+  if curl "${curl_args[@]}" "${ping_url}" > /dev/null; then
+    log "Pinged healthchecks.io with status: ${status}."
+  else
+    log_ping_healthchecks_error
+  fi
 }
 
 run_with_capture() {
