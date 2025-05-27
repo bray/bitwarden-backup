@@ -81,14 +81,6 @@ check_commands() {
   fi
 }
 
-check_env_var() {
-  local var_name="$1"
-
-  if [[ -z "${!var_name:-}" ]]; then
-    fail "You must set an env var $1."
-  fi
-}
-
 check_proton_drive_env_vars() {
   [[ -x "${RCLONE_BIN:-}" ]] || return 0
 
@@ -115,11 +107,6 @@ check_proton_drive_env_vars() {
     PROTON_DRIVE_DIR="${PROTON_DRIVE_DIR_BASE}/${YEAR}/${MONTH}/${DAY}/"
     PROTON_DRIVE_CONFIGURED=1
   fi
-}
-
-check_env_vars() {
-  check_env_var "AGE_PUBLIC_KEY"
-  check_proton_drive_env_vars
 }
 
 check_file() {
@@ -285,7 +272,7 @@ main() {
   set_env_var_defaults
   check_commands
   load_config
-  check_env_vars
+  check_proton_drive_env_vars
   check_files
   print_config
 
