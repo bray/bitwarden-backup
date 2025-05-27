@@ -19,6 +19,8 @@ set -euo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="${HOME}/.config/back-up-bitwarden"
+ENV_FILE="${CONFIG_DIR}/.env"
 
 source_common_functions() {
   local path="${XDG_DATA_HOME:-${HOME}/.local/share}/scripts/common-functions.sh"
@@ -32,13 +34,20 @@ source_common_functions() {
   fi
 }
 
+load_config() {
+  if [[ -f "$ENV_FILE" ]]; then
+    # shellcheck source=/dev/null
+    source "$ENV_FILE"
+  fi
+  
+  HEALTHCHECKS_URL="${HEALTHCHECKS_URL:-}"
+}
+
 log_ping_healthchecks_error() {
   log_error "Failed to ping healthchecks.io start"
 }
 
 check_healthchecks_url() {
-  HEALTHCHECKS_URL="${HEALTHCHECKS_URL:-}"
-
   if [[ -z "${HEALTHCHECKS_URL}" ]]; then
     log "HEALTHCHECKS_URL is not set. Skipping healthchecks.io integration.\n"
   fi
@@ -98,6 +107,7 @@ run_with_capture() {
 
 main() {
   source_common_functions
+  load_config
   check_healthchecks_url
   ping_healthchecks "start"
   run_with_capture "${SCRIPT_DIR}/back-up-bitwarden.sh"
