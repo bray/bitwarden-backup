@@ -139,7 +139,7 @@ load_config() {
     fi
   done
 
-  PROTON_DRIVE_CONFIGURED=0
+  set_env_var_defaults
 
   BACKUP_DIR_BASE="${BACKUP_DIR_BASE:-bitwarden_backups}"
   YEAR=$(date +'%Y')
@@ -147,6 +147,8 @@ load_config() {
   DAY=$(date +'%d')
   TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
   BACKUP_DIR="${BACKUP_DIR_BASE}/${YEAR}/${MONTH}/${DAY}"
+
+  PROTON_DRIVE_CONFIGURED=0
 }
 
 print_config() {
@@ -269,9 +271,8 @@ main() {
   echo "Started Bitwarden backup process at $(now)."
 
   source_common_functions
-  set_env_var_defaults
-  check_commands
   load_config
+  check_commands
   check_proton_drive_env_vars
   check_files
   print_config
