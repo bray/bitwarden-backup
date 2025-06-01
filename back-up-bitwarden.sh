@@ -20,6 +20,9 @@
 #       rclone (optional, for Proton Drive sync)
 #   - Scripts:
 #       common-functions.sh (a library of common functions)
+#   - Identity file for age encryption:
+#       Generate an `age` asymmetric key pair:
+#       `age-keygen -o ~/.config/age/identity.txt`
 #
 # Configuration:
 #   All configuration is done via environment variables in:
