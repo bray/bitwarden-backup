@@ -48,6 +48,10 @@
 #   - Backups are encrypted with `age` using your public key
 #   - Sensitive credentials are never written to disk
 #   - All backup files are set to mode 600
+#
+# Decrypting backups:
+#   To decrypt the age-encrypted backups, you need your private key.
+#   `age --decrypt -i ~/.config/age/identity.txt /path/to/bitwarden_backups/DATE/bitwarden_backup_TIMESTAMP.json.age | less`
 
 set -euo pipefail
 IFS=$'\n\t'
