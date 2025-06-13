@@ -9,7 +9,7 @@ The backup includes:
 - Age-encrypted JSON export
 - Age-encrypted CSV export
 
-Optional: Syncs backups to Proton Drive via `rclone`.
+Optional: Sync backups to Proton Drive via `rclone`.
 
 ## Requirements
 
