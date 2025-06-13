@@ -2,7 +2,7 @@
 
 ## Description
 
-Backs up your Bitwarden vault to a local directory.
+Back up your Bitwarden vault to a local directory.
 
 The backup includes:
 - Encrypted JSON export (Bitwarden format)
