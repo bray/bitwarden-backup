@@ -11,35 +11,75 @@ The backup includes:
 
 Optional: Sync backups to Proton Drive via `rclone`.
 
-## Requirements
+## Usage
 
-- Commands:
-  - [bw](https://bitwarden.com/help/cli/) (Bitwarden CLI)
-  - [age](https://github.com/FiloSottile/age) (encryption tool)
-  - [rclone](https://rclone.org/install/) (optional, for Proton Drive sync)
-- Scripts:
-  - [common-functions.sh](https://github.com/bray/dotfiles/blob/main/.local/share/scripts/common-functions.sh) (a library of common functions)
-- Identity file for age encryption:
-  - Generate an `age` asymmetric key pair with `age-keygen -o ~/.config/age/identity.txt`
+1. Install required dependencies:
+   - [Bitwarden CLI](https://bitwarden.com/help/cli/)
+   - [age](https://github.com/FiloSottile/age)
+   - [rclone](https://rclone.org/install/) (optional, for Proton Drive sync)
+   - [common-functions.sh](https://github.com/bray/dotfiles/blob/main/.local/share/scripts/common-functions.sh)
+
+2. Set up your environment:
+   ```bash
+   # Create config directory
+   mkdir -p ~/.config/back-up-bitwarden
+   
+   # Generate a key pair for `age`
+   age-keygen -o ~/.config/age/identity.txt
+   
+   # Create and secure .env file
+   touch ~/.config/back-up-bitwarden/.env
+   chmod 600 ~/.config/back-up-bitwarden/.env
+   ```
+
+3. Configure your `.env` file with the following variables:
+   ```bash
+   # Required variables
+   BW_CLIENTID="your_client_id"
+   BW_CLIENTSECRET="your_client_secret"
+   BW_VAULT_PASSWORD="your_master_password"
+   BW_JSON_PASSWORD="any_strong_password_for_encrypted_json_export"
+   AGE_PUBLIC_KEY="your_age_public_key"
+
+   # Optional variables
+
+   # Path to `bw` CLI (default: $(command -v bw))
+   # BW_BIN="/path/to/bw"
+
+   # Path to `age` CLI (default: $(command -v age))
+   # AGE_BIN="/path/to/age"
+
+   # Path to `rclone` CLI (default: $(command -v rclone))
+   # RCLONE_BIN="/path/to/rclone"
+
+   # Backup directory (default: ./bitwarden_backups)
+   # BACKUP_DIR_BASE="./bitwarden_backups"
+
+   # Rclone remote name for Proton Drive
+   # PROTON_DRIVE_REMOTE_NAME="proton"
+
+   # Base destination path in Proton Drive
+   # PROTON_DRIVE_DIR_BASE="backups/bitwarden"
+   ```
+
+4. Run the backup:
+   ```bash
+   # Manual backup
+   ./back-up-bitwarden.sh
+   
+   # Or use the wrapper for automated backups
+   ./back-up-bitwarden-wrapper.sh
+   ```
+
+5. To decrypt a backup:
+   ```bash
+   age --decrypt -i ~/.config/age/identity.txt /path/to/bitwarden_backups/DATE/bitwarden_backup_TIMESTAMP.json.age | less
+   ```
 
 ## Configuration
 
 All configuration is done via environment variables in: `$HOME/.config/back-up-bitwarden/.env` (make sure to `chmod 600` this file).
 
-### Required variables:
-- `BW_CLIENTID` - Bitwarden API client ID
-- `BW_CLIENTSECRET` - Bitwarden API client secret
-- `BW_VAULT_PASSWORD` - Your Bitwarden master password
-- `BW_JSON_PASSWORD` - Password for encrypted JSON export
-- `AGE_PUBLIC_KEY` - Your age public key for encryption
-
-### Optional variables:
-- `BW_BIN` - Path to `bw` CLI (default: `$(command -v bw)`)
-- `AGE_BIN` - Path to `age` CLI (default: `$(command -v age)`)
-- `RCLONE_BIN` - Path to `rclone` CLI (default: `$(command -v rclone)`)
-- `BACKUP_DIR_BASE` - Backup directory (default: `./bitwarden_backups`)
-- `PROTON_DRIVE_REMOTE_NAME` - Rclone remote name for Proton Drive
-- `PROTON_DRIVE_DIR_BASE` - Base destination path in Proton Drive
 
 ## Security
 
