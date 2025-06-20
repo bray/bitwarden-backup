@@ -21,15 +21,13 @@ Optional: Sync backups to Proton Drive via `rclone`.
 
 2. Set up your environment:
    ```bash
-   # Create config directory
+   # Create and secure the configuration file
    mkdir -p ~/.config/back-up-bitwarden
+   touch ~/.config/back-up-bitwarden/.env
+   chmod 600 ~/.config/back-up-bitwarden/.env
    
    # Generate a key pair for `age`
    age-keygen -o ~/.config/age/identity.txt
-   
-   # Create and secure .env file
-   touch ~/.config/back-up-bitwarden/.env
-   chmod 600 ~/.config/back-up-bitwarden/.env
    ```
 
 3. Configure your `.env` file with the following variables:
