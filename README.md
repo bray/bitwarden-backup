@@ -59,6 +59,9 @@ Optional: Sync backups to Proton Drive via `rclone`.
 
    # Base destination path in Proton Drive
    # PROTON_DRIVE_DIR_BASE="backups/bitwarden"
+
+   # Enable healthchecks.io integration
+   # HEALTHCHECKS_URL="your_url"
    ```
 
 4. Run the backup:
@@ -87,10 +90,3 @@ age --decrypt -i ~/.config/age/identity.txt /path/to/bitwarden_backups/DATE/bitw
 ## Wrapper
 
 The wrapper script (`back-up-bitwarden-wrapper.sh`) is designed to run the main backup script via `cron` or `LaunchAgent`, with optional [healthchecks.io](https://healthchecks.io/) integration as a dead man's switch.
-
-### Requirements
-
-- Scripts:
-  - `back-up-bitwarden.sh` (the main backup script)
-- Environment variables:
-  - `HEALTHCHECKS_URL` (optional)
