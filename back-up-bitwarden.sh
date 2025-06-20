@@ -15,7 +15,7 @@
 # Usage:
 #   ./back-up-bitwarden.sh
 #
-# For full documentation, see the README.md file.
+# For full documentation, see README.md.
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -33,7 +33,7 @@ Options:
   -h, --help     Show this help message
   --version      Show version information
 
-For detailed documentation, see the README.md file.
+For detailed documentation, see README.md.
 EOF
 }
 
