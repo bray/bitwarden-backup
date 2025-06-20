@@ -27,6 +27,7 @@ Optional: Sync backups to Proton Drive via `rclone`.
    chmod 600 ~/.config/back-up-bitwarden/.env
    
    # Generate a key pair for `age`
+   mkdir -p ~/.config/age
    age-keygen -o ~/.config/age/identity.txt
    ```
 
