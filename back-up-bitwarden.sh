@@ -4,54 +4,18 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Brian Ray
 #
-# Backs up your Bitwarden vault to a local directory.
+# A script to back up your Bitwarden vault to a local directory with age encryption.
+# Optionally syncs backups to Proton Drive via rclone.
 #
 # The backup includes:
 #   - Encrypted JSON export (Bitwarden format)
 #   - Age-encrypted JSON export
 #   - Age-encrypted CSV export
 #
-# Optional: Syncs backups to Proton Drive via rclone
+# Usage:
+#   ./back-up-bitwarden.sh
 #
-# Requirements:
-#   - Commands:
-#       bw (Bitwarden CLI)
-#       age (encryption tool)
-#       rclone (optional, for Proton Drive sync)
-#   - Scripts:
-#       common-functions.sh (a library of common functions)
-#   - Identity file for age encryption:
-#       Generate an `age` asymmetric key pair:
-#       `age-keygen -o ~/.config/age/identity.txt`
-#
-# Configuration:
-#   All configuration is done via environment variables in:
-#   $HOME/.config/back-up-bitwarden/.env
-#
-#   Required variables:
-#     BW_CLIENTID         - Bitwarden API client ID
-#     BW_CLIENTSECRET     - Bitwarden API client secret
-#     BW_VAULT_PASSWORD   - Your Bitwarden master password
-#     BW_JSON_PASSWORD    - Password for encrypted JSON export
-#     AGE_PUBLIC_KEY      - Your age public key for encryption
-#
-#   Optional variables:
-#     BW_BIN                         - Path to bw CLI (default: $(command -v bw))
-#     AGE_BIN                        - Path to age CLI (default: $(command -v age))
-#     RCLONE_BIN                     - Path to rclone CLI (default: $(command -v rclone))
-#     BACKUP_DIR_BASE                - Backup directory (default: ./bitwarden_backups)
-#     PROTON_DRIVE_REMOTE_NAME       - Rclone remote name for Proton Drive
-#     PROTON_DRIVE_DIR_BASE          - Base destination path in Proton Drive
-#
-# Security:
-#   - The .env file should be readable only by your user (chmod 600)
-#   - Backups are encrypted with `age` using your public key
-#   - Sensitive credentials are never written to disk
-#   - All backup files are set to mode 600
-#
-# Decrypting backups:
-#   To decrypt the age-encrypted backups, you need your private key.
-#   `age --decrypt -i ~/.config/age/identity.txt /path/to/bitwarden_backups/DATE/bitwarden_backup_TIMESTAMP.json.age | less`
+# For full documentation, see the README.md file.
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -59,6 +23,43 @@ IFS=$'\n\t'
 CONFIG_DIR="${HOME}/.config/back-up-bitwarden"
 ENV_FILE="${CONFIG_DIR}/.env"
 
+print_help() {
+  cat << EOF
+Usage: back-up-bitwarden.sh [OPTIONS]
+
+Back up your Bitwarden vault to a local directory.
+
+Options:
+  -h, --help     Show this help message
+  --version      Show version information
+
+For detailed documentation, see the README.md file.
+EOF
+}
+
+print_version() {
+  echo "back-up-bitwarden.sh version 1.0.0"
+}
+
+# Handle command line arguments
+case "${1:-}" in
+  -h|--help)
+    print_help
+    exit 0
+    ;;
+  --version)
+    print_version
+    exit 0
+    ;;
+  "")
+    # No arguments, continue with backup
+    ;;
+  *)
+    echo "Error: Unknown option '$1'"
+    echo "Use --help for usage information"
+    exit 1
+    ;;
+esac
 
 source_common_functions() {
   local path="${XDG_DATA_HOME:-${HOME}/.local/share}/scripts/common-functions.sh"
