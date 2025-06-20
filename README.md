@@ -70,16 +70,6 @@ Optional: Sync backups to Proton Drive via `rclone`.
    ./back-up-bitwarden-wrapper.sh
    ```
 
-5. To decrypt a backup:
-   ```bash
-   age --decrypt -i ~/.config/age/identity.txt /path/to/bitwarden_backups/DATE/bitwarden_backup_TIMESTAMP.json.age | less
-   ```
-
-## Configuration
-
-All configuration is done via environment variables in: `$HOME/.config/back-up-bitwarden/.env` (make sure to `chmod 600` this file).
-
-
 ## Security
 
 - The `.env` file should be readable only by your user (`chmod 600`)
