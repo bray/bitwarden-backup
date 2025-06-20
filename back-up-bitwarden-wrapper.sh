@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 
-# Bitwarden Vault Backup Script - LaunchAgent Wrapper
+# Bitwarden Vault Backup Script - Wrapper
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Brian Ray
 #
-# Script to run the Bitwarden backup script via LaunchAgent,
-# with optional healthchecks.io integration as a dead man's switch.
+# A wrapper to run the Bitwarden backup script via cron or LaunchAgent.
+# Optionally integrates with healthchecks.io as a dead man's switch.
 #
-# Requirements:
-#   - Scripts:
-#       back-up-bitwarden.sh (the main backup script)
-#       common-functions.sh (a library of common functions)
-#   - Environment variables:
-#       See back-up-bitwarden.sh for other required and optional variables
-#       HEALTHCHECKS_URL (optional)
+# Usage:
+#   ./back-up-bitwarden-wrapper.sh
+#
+# For full documentation, see README.md.
 
 set -euo pipefail
 IFS=$'\n\t'
