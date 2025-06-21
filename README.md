@@ -2,14 +2,12 @@
 
 ## Description
 
-Back up your Bitwarden vault to a local directory.
+Back up your Bitwarden vault to a local directory, and optionally sync backups to Proton Drive via `rclone`.
 
 The backup includes:
 - Encrypted JSON export (Bitwarden format)
 - Age-encrypted JSON export
 - Age-encrypted CSV export
-
-Optional: Sync backups to Proton Drive via `rclone`.
 
 ## Usage
 

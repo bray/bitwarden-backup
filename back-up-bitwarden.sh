@@ -4,8 +4,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Brian Ray
 #
-# A script to back up your Bitwarden vault to a local directory with age encryption.
-# Optionally syncs backups to Proton Drive via rclone.
+# Back up your Bitwarden vault to a local directory, and optionally sync backups to Proton Drive via `rclone`.
 #
 # The backup includes:
 #   - Encrypted JSON export (Bitwarden format)
