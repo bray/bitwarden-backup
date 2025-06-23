@@ -9,6 +9,8 @@ The backup includes:
 - Age-encrypted JSON export
 - Age-encrypted CSV export
 
+Also see [keepassxc-backup](https://github.com/bray/keepassxc-backup) for a similar script that backs up your KeePassXC database(s).
+
 ## Usage
 
 1. Install required dependencies:
